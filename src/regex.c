@@ -18,26 +18,41 @@ int re_is_match(const char *regexp, const char *text) {
 
 /* search for regexp at the beginning of text */
 static int match_here(const char *regexp, const char *text) {
+    // bool to keep track of if we should escape the next metacharacter
+    int is_escaped = 0;
+
     while (1) {
         // if there are no more expressions to check, we matched everything
         if (regexp[0] == '\0')
             return 1;
 
+        // if the first character is an escape, then toggle the is_escaped bool
+        if (regexp[0] == '\\') {
+            is_escaped = !is_escaped;
+            // if we are escaping, continue to the next character
+            // if we are not, then keep matching
+            if (is_escaped) {
+                regexp++;
+                continue;
+            }
+        }
+
         // if kleene star, then defer to helper function
-        if (regexp[1] == '*')
+        if (!is_escaped && regexp[1] == '*')
             return match_kleene(regexp[0], regexp + 2, text);
         
         // if we hit a termination character and are at the end of the regexp
-        if (regexp[0] == '$' && regexp[1] == '\0')
+        if (!is_escaped && regexp[0] == '$' && regexp[1] == '\0')
             return *text == '\0';
 
         // if we are not at the end of the string and either the regexp matches the
         // character literal or the regexp has the appropriate metacharacter
-        if (*text == '\0' || !(regexp[0] == '.' || regexp[0] == text[0]))
+        if (*text == '\0' || !((!is_escaped && regexp[0] == '.') || regexp[0] == text[0]))
             break;
         
         regexp++;
         text++;
+        is_escaped = 0;
     }
 
     // if none of the above hold, no match was found and return false

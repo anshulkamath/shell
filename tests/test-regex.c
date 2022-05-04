@@ -23,11 +23,39 @@ void test_naive_regex() {
     // expect non-empty regex and empty string to not match
     expect(tester, !re_is_match("a", ""));
 
+    // expect $ to work
+    expect(tester, re_is_match("world$", "this is the world"));
+
+    log_tests(tester);
+}
+
+void test_regex_escape() {
+    testing_logger_t *tester = create_tester();
+
+    // simple examples of escaping
+    expect(tester, re_is_match("Hello world\\.", "Hello world."));
+    expect(tester, !re_is_match("Hello world\\.", "Hello world"));
+
+    expect(tester, re_is_match("Hello world\\$", "Hello world$"));
+    expect(tester, !re_is_match("Hello world\\$", "Hello world"));
+
+    expect(tester, re_is_match("Hello world\\*", "Hello world*"));
+    expect(tester, !re_is_match("Hello world\\*", "Hello worldddd"));
+
+    // escaping at beginning
+    expect(tester, re_is_match("\\$Hello world", "$Hello world"));
+    expect(tester, !re_is_match("\\$Hello world", "Hello world"));
+
+    // kleene star on `\`
+    expect(tester, re_is_match("Hello world\\\\*.", "Hello world\\\\\\."));
+    expect(tester, re_is_match("Hello world\\\\*.", "Hello world."));
+
     log_tests(tester);
 }
 
 int main() {
     test_naive_regex();
+    test_regex_escape();
 
     return 0;
 }
