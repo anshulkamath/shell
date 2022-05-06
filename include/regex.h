@@ -30,7 +30,4 @@
  */
 int re_is_match(const char *pattern, const char *string);
 
-/* include private function headers as well */
-#include "regex-private.h"
-
 #endif

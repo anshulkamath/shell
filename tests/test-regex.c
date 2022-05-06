@@ -1,4 +1,5 @@
 #include "regex.h"
+#include "regex-private.h"
 
 #include "testing-logger.h"
 

@@ -1,4 +1,5 @@
 #include "regex.h"
+#include "regex-private.h"
 
 int re_is_match(const char *regexp, const char *text) {
     // checks if the text starts as desired
