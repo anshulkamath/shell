@@ -29,6 +29,7 @@ static int match_here(const char *regexp, const char *text) {
         // if the first character is an escape, then toggle the is_escaped bool
         if (regexp[0] == '\\') {
             is_escaped = !is_escaped;
+
             // if we are escaping, continue to the next character
             // if we are not, then keep matching
             if (is_escaped) {
@@ -44,6 +45,32 @@ static int match_here(const char *regexp, const char *text) {
         // if we hit a termination character and are at the end of the regexp
         if (!is_escaped && regexp[0] == '$' && regexp[1] == '\0')
             return *text == '\0';
+
+        // if we hit a `+` character, check one or more
+        if (!is_escaped && regexp[1] == '+') {
+            if (text[0] == '\0' || !(regexp[0] == '.' || text[0] == regexp[0]))
+                return 0;
+            return match_kleene(regexp[0], regexp + 2, text);
+        }
+
+        // if we hit a `?` character, check 0 or 1
+        if (!is_escaped && regexp[1] == '?') {
+            // if we are at the end of our string, check that we are done matching
+            if (text[0] == '\0')
+                return regexp[2] == '\0';
+                
+            // there is more than one instance of the character
+            if (regexp[0] == text[1])
+                return 0;
+            
+            // if the first character is the same, then we consume it
+            if (regexp[0] == text[0])
+                text++;
+            
+            // skip over instruction in regexp
+            regexp += 2;
+            continue;
+        }
 
         // if we are not at the end of the string and either the regexp matches the
         // character literal or the regexp has the appropriate metacharacter

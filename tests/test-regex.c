@@ -53,9 +53,27 @@ void test_regex_escape() {
     log_tests(tester);
 }
 
+void test_regex_some_many() {
+    testing_logger_t *tester = create_tester();
+
+    expect(tester, re_is_match("Hello world!+", "Hello world!"));
+    expect(tester, re_is_match("Hello world!+", "Hello world!!!!"));
+    expect(tester, re_is_match("Hello world.+", "Hello worlddddd"));
+    expect(tester, !re_is_match("Hello world.+", "Hello world"));
+    expect(tester, re_is_match("Hello world!\\+", "Hello world!+"));
+
+    expect(tester, re_is_match("Hello world!?", "Hello world!"));
+    expect(tester, re_is_match("Hello world!?", "Hello world"));
+    expect(tester, !re_is_match("Hello world.?", "Hello world!!!!"));
+    expect(tester, re_is_match("Hello world!\\?\\?", "Hello world!??"));
+
+    log_tests(tester);
+}
+
 int main() {
     test_naive_regex();
     test_regex_escape();
+    test_regex_some_many();
 
     return 0;
 }

@@ -21,6 +21,8 @@
  *          ^   matches the beginning of the input string
  *          $   matches the end of the input string
  *          *   matches zero or more occurrences of the previous character
+ *          +   matches one or more occurrences of the previous character
+ *          ?   matches the previous character zero or once
  * 
  * @param pattern   a pointer to the pattern to check
  * @param string    a pointer to the string to match
