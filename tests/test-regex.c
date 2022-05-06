@@ -64,7 +64,7 @@ void test_regex_some_many() {
 
     expect(tester, re_is_match("Hello world!?", "Hello world!"));
     expect(tester, re_is_match("Hello world!?", "Hello world"));
-    expect(tester, !re_is_match("Hello world.?", "Hello world!!!!"));
+    expect(tester, re_is_match("Hello world.?", "Hello world!!!!"));
     expect(tester, re_is_match("Hello world!\\?\\?", "Hello world!??"));
 
     log_tests(tester);

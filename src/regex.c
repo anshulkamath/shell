@@ -1,8 +1,5 @@
 #include "regex.h"
 
-static int match_here(const char *regexp, const char *text);
-static int match_kleene(int c, const char *regexp, const char *text);
-
 int re_is_match(const char *regexp, const char *text) {
     // checks if the text starts as desired
     if (regexp[0] == '^')
@@ -17,7 +14,7 @@ int re_is_match(const char *regexp, const char *text) {
 }
 
 /* search for regexp at the beginning of text */
-static int match_here(const char *regexp, const char *text) {
+int match_here(const char *regexp, const char *text) {
     // bool to keep track of if we should escape the next metacharacter
     int is_escaped = 0;
 
@@ -64,11 +61,13 @@ static int match_here(const char *regexp, const char *text) {
                 return 0;
             
             // if the first character is the same, then we consume it
-            if (regexp[0] == text[0])
+            if (regexp[0] == text[0] || (!is_escaped && regexp[0] == '.'))
                 text++;
             
             // skip over instruction in regexp
             regexp += 2;
+
+            // if the regexp is done but there are more (of the samee)
             continue;
         }
 
@@ -87,7 +86,7 @@ static int match_here(const char *regexp, const char *text) {
 }
 
 /* matches c*regexp at beginning of text */
-static int match_kleene(int c, const char *regexp, const char *text) {
+int match_kleene(int c, const char *regexp, const char *text) {
     // while there are matches for kleene character, check if the remaining
     // string matches the regexp
     do {
