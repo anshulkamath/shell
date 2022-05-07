@@ -61,11 +61,11 @@ void re_free(re_t *reg);
  * NOTE:  this is a private function - use re_is_match instead
  * TODO:  move this to a separate file
  * 
- * @param regexp the regexp to test against
+ * @param reg the regexp to test against
  * @param text   the text to match
  * @return int 
  */
-int match_here(const char *regexp, const char *text);
+int match_here(const re_t *reg, const char *text);
 
 /**
  * @brief same as match_here, but matches an arbitrary number of
@@ -74,10 +74,10 @@ int match_here(const char *regexp, const char *text);
  * TODO:  move this to a separate file
  * 
  * @param c      the character to match at the beginning of the string
- * @param regexp the pattern to match against
+ * @param reg the pattern to match against
  * @param text   the text to match
  * @return int 
  */
-int match_kleene(int c, const char *regexp, const char *text);
+int match_kleene(int c, const re_t *reg, const char *text);
 
 #endif

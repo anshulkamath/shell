@@ -8,71 +8,66 @@
     (x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END
 
 int re_is_match(const char *regexp, const char *text) {
+    re_t *reg = re_compile(regexp);
+    int status;
+
     // checks if the text starts as desired
-    if (regexp[0] == '^')
-        return match_here(regexp + 1, text);
+    if (reg[0].type == BEGIN) {
+        status = match_here(reg + 1, text);
+        re_free(reg);
+        return status;
+    }
     
     // match starting at any point in the text (even if text is empty)
     do {
-        if (match_here(regexp, text)) return 1;
+        if ((status = match_here(reg, text))) {
+            re_free(reg);
+            return status;
+        }
     } while (*text++ != '\0');
 
+    re_free(reg);
     return 0;
 }
 
 /* search for regexp at the beginning of text */
-int match_here(const char *regexp, const char *text) {
-    // bool to keep track of if we should escape the next metacharacter
-    int is_escaped = 0;
-
+int match_here(const re_t *reg, const char *text) {
     while (1) {
         // if there are no more expressions to check, we matched everything
-        if (regexp[0] == '\0')
+        if (reg[0].type == TERMINAL)
             return 1;
 
-        // if the first character is an escape, then toggle the is_escaped bool
-        if (regexp[0] == '\\') {
-            is_escaped = !is_escaped;
-
-            // if we are escaping, continue to the next character
-            // if we are not, then keep matching
-            if (is_escaped) {
-                regexp++;
-                continue;
-            }
-        }
-
         // if kleene star, then defer to helper function
-        if (!is_escaped && regexp[1] == '*')
-            return match_kleene(regexp[0], regexp + 2, text);
+        if (reg[1].type == STAR)
+            return match_kleene(reg[0].class.c, reg + 2, text);
         
         // if we hit a termination character and are at the end of the regexp
-        if (!is_escaped && regexp[0] == '$' && regexp[1] == '\0')
+        if (reg[0].type == END && reg[1].type == TERMINAL)
             return *text == '\0';
 
         // if we hit a `+` character, check one or more
-        if (!is_escaped && regexp[1] == '+') {
-            if (text[0] == '\0' || !(regexp[0] == '.' || text[0] == regexp[0]))
+        if (reg[1].type == PLUS) {
+            if (text[0] == '\0' || !(reg[0].type == DOT || text[0] == reg[0].class.c))
                 return 0;
-            return match_kleene(regexp[0], regexp + 2, text);
+            return match_kleene(reg[0].class.c, reg + 2, text);
         }
 
         // if we hit a `?` character, check 0 or 1
-        if (!is_escaped && regexp[1] == '?') {
+        if (reg[1].type == OPTIONAL) {
             // if we are at the end of our string, check that we are done matching
             if (text[0] == '\0')
-                return regexp[2] == '\0';
+                return reg[2].type == TERMINAL;
                 
             // there is more than one instance of the character
-            if (regexp[0] == text[1])
+            if (reg[0].class.c == text[1])
                 return 0;
             
             // if the first character is the same, then we consume it
-            if (regexp[0] == text[0] || (!is_escaped && regexp[0] == '.'))
+            if (reg[0].class.c == text[0] || (reg[0].type == DOT))
                 text++;
             
             // skip over instruction in regexp
-            regexp += 2;
+            reg += 2;
 
             // if the regexp is done but there are more (of the samee)
             continue;
@@ -80,12 +75,17 @@ int match_here(const char *regexp, const char *text) {
 
         // if we are not at the end of the string and either the regexp matches the
         // character literal or the regexp has the appropriate metacharacter
-        if (*text == '\0' || !((!is_escaped && regexp[0] == '.') || regexp[0] == text[0]))
+        if (
+            *text == '\0' || 
+            !(
+                (reg[0].type == DOT) || 
+                (reg[0].type == CHAR && reg[0].class.c == text[0])
+            )
+        )
             break;
         
-        regexp++;
+        reg++;
         text++;
-        is_escaped = 0;
     }
 
     // if none of the above hold, no match was found and return false
@@ -93,11 +93,11 @@ int match_here(const char *regexp, const char *text) {
 }
 
 /* matches c*regexp at beginning of text */
-int match_kleene(int c, const char *regexp, const char *text) {
+int match_kleene(int c, const re_t *reg, const char *text) {
     // while there are matches for kleene character, check if the remaining
     // string matches the regexp
     do {
-        if (match_here(regexp, text))
+        if (match_here(reg, text))
             return 1;
     } while (*text != '\0' && (*text++ == c || c == '.'));
 
