@@ -8,6 +8,26 @@
 #define IS_METACHAR(x) \
     (x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END
 
+/**
+ * @brief checks a single character using a given class by checking if:
+ * -------
+ *  - we are not at the end of the string
+ *  - the metacharacter matches against the character
+ *  - the literal character matches
+ *  - the literal character is in the character class
+ * 
+ * @param cl the class to check against
+ * @param ch the character to match
+ * @returns int
+*/
+static __attribute__((always_inline)) int check_char(const re_t *cl, char ch) {
+    return  ch != '\0' && (
+                (cl->type == DOT) || 
+                (cl->type == CHAR && cl->class.c == ch) ||
+                (cl->type == CHAR_CLASS && get_ind(cl->class.mask, ch))
+            );
+}
+
 int re_is_match(const char *regexp, const char *text) {
     re_t *reg = re_compile(regexp);
     int status;
@@ -48,7 +68,7 @@ int match_here(const re_t *reg, const char *text) {
 
         // if we hit a `+` character, check one or more
         else if (reg[1].type == PLUS) {
-            if (text[0] == '\0' || !(reg[0].type == DOT || text[0] == reg[0].class.c))
+            if (!check_char(reg, text[0]))
                 return 0;
             return match_kleene(&reg[0], reg + 2, text);
         }
@@ -79,14 +99,7 @@ int match_here(const re_t *reg, const char *text) {
          *  - the literal character matches
          *  - the literal character is in the character class
          */ 
-        else if (
-            *text == '\0' || 
-            !(
-                (reg[0].type == DOT) || 
-                (reg[0].type == CHAR && reg[0].class.c == text[0]) ||
-                (reg[0].type == CHAR_CLASS && get_ind(reg[0].class.mask, *text))
-            )
-        )
+        else if (!check_char(reg, text[0]))
             break;
         
         reg++;
@@ -107,21 +120,10 @@ int match_kleene(const re_t *c, const re_t *reg, const char *text) {
     
     // while there are matches for kleene character, check if the remaining
     // string matches the regexp
-    if (c->type == CHAR_CLASS) {
-        do {
-            if (match_here(reg, text))
-                return 1;
-        } while (*text != '\0' && !(get_ind(c->class.mask, *text++)));
-
-        return 0;
-    }
-
-    char ch = c->class.c;
-    // simple case of single character or dot operator
     do {
         if (match_here(reg, text))
             return 1;
-    } while (*text != '\0' && (*text++ == ch || ch == '.'));
+    } while (check_char(c, *text++));
 
     return 0;
 }
@@ -139,14 +141,14 @@ re_t *re_compile(const char *regexp) {
 
     for (size_t i = 0; i < REGEXP_LEN; i++) {
         // handle escaped sequence
-        if (regexp[i] == '\\') {
+        if (regexp[i] == ESCAPE) {
             regex[index].type = CHAR;
 
             // if the next character is a metacharacter, make it a character
             if (i + 1 < REGEXP_LEN && IS_METACHAR(regexp[i + 1]))
                 regex[index].class.c = regexp[i + 1];
             else
-                regex[index].class.c = '\\';
+                regex[index].class.c = ESCAPE;
             
             // account for the extra consumed input
             i++;
@@ -161,6 +163,23 @@ re_t *re_compile(const char *regexp) {
         else if (regexp[i] == BEGIN_CCL) {
             i++;
             while (regexp[i] != END_CCL) {
+                // take care of range
+                if (regexp[i - 1] != ESCAPE && regexp[i] == RANGE) {
+                    // catch if the range is not closed
+                    if (regexp[i + 1] == '\0') {
+                        fprintf(stderr, "unclosed range!\n");
+                        return NULL;
+                    }
+                    
+                    // add all the characters in the range to the mask 
+                    char ch = regexp[i - 1];
+                    for (; ch <= regexp[i + 1] && ch; ch++)
+                        set_ind(regex[index].class.mask, ch);
+                    
+                    // move regexp pointer as needed
+                    i++;
+                }
+
                 if (regexp[i] == '\0') {
                     fprintf(stderr, "unclosed character class!\n");
                     return NULL;

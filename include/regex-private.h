@@ -28,7 +28,7 @@
  */
 typedef enum class { 
     CHAR = 1, CHAR_CLASS, DOT = '.', STAR = '*', PLUS = '+', OPTIONAL = '?', BEGIN = '^', END = '$', TERMINAL = '\0',
-    BEGIN_CCL = '[', END_CCL = ']'
+    BEGIN_CCL = '[', END_CCL = ']', RANGE = '-', ESCAPE = '\\'
 } class_t;
 
 /* type to manage character classes */
