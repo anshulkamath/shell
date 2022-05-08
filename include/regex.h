@@ -13,7 +13,7 @@
 #define REGEX_H
 
 /**
- * @brief returns true if and only if the given pattern matches
+ * @brief returns a pointer to the match if the given pattern matches
  *        the given string. Support for the following constructs:
  * 
  *          c   matches any literal character `c`
@@ -26,8 +26,8 @@
  * 
  * @param pattern   a pointer to the pattern to check
  * @param string    a pointer to the string to match
- * @return int 
+ * @return char * 
  */
-int re_is_match(const char *pattern, const char *string);
+const char *re_is_match(const char *pattern, const char *string);
 
 #endif

@@ -6,6 +6,12 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Usage: reg <pattern> <string>\n");
     }
     
-    printf("A match was%sfound\n", re_is_match(argv[1], argv[2]) ? " " : " not ");
+    const char *match = re_is_match(argv[1], argv[2]);
+    
+    printf("A match was%sfound\n", match ? " " : " not ");
+
+    if (match) {
+        printf("\nMatch: %s\n", match);
+    }
     return 0;
 }

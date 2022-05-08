@@ -109,7 +109,7 @@ re_t *re_compile(const char *regexp) {
     return regex;
 }
 
-int re_is_match(const char *regexp, const char *text) {
+const char *re_is_match(const char *regexp, const char *text) {
     re_t *reg = re_compile(regexp);
     int status;
 
@@ -117,19 +117,19 @@ int re_is_match(const char *regexp, const char *text) {
     if (reg[0].type == BEGIN) {
         status = match_here(reg + 1, text);
         re_free(reg);
-        return status;
+        return status ? text : NULL;
     }
     
     // match starting at any point in the text (even if text is empty)
     do {
         if ((status = match_here(reg, text))) {
             re_free(reg);
-            return status;
+            return status ? text : NULL;
         }
     } while (*text++ != '\0');
 
     re_free(reg);
-    return 0;
+    return NULL;
 }
 
 /* search for regexp at the beginning of text */
