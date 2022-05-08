@@ -221,7 +221,7 @@ void test_regex_ccl_ranges() {
     log_tests(tester);
 }
 
-void test_regex_ccl_nccl() {
+void test_regex_nccl() {
     testing_logger_t *tester = create_tester();
     char *regexp;
     
@@ -245,6 +245,37 @@ void test_regex_ccl_nccl() {
     log_tests(tester);
 }
 
+void test_regex_abbr() {
+    testing_logger_t *tester = create_tester();
+    char *res;
+    
+    res = re_precompile("^\\a+");
+    expect(tester, !strcmp(res, "^[a-z]+"));
+    free(res);
+
+    res = re_precompile("^\\A+");
+    expect(tester, !strcmp(res, "^[^a-z]+"));
+    free(res);
+
+    res = re_precompile("\\d*");
+    expect(tester, !strcmp(res, "[0-9]*"));
+    free(res);
+
+    res = re_precompile("[a-z]*");
+    expect(tester, !strcmp(res, "[a-z]*"));
+    free(res);
+
+    res = re_precompile("^[a-z]\\d*");
+    expect(tester, !strcmp(res, "^[a-z][0-9]*"));
+    free(res);
+
+    res = re_precompile("^\\w+");
+    expect(tester, !strcmp(res, "^[a-zA-Z0-9]+"));
+    free(res);
+
+    log_tests(tester);
+}
+
 int main() {
     test_regex_compile_naive();
     test_naive_regex();
@@ -253,7 +284,8 @@ int main() {
     test_regex_compile_ccl();
     test_regex_ccl_naive();
     test_regex_ccl_ranges();
-    test_regex_ccl_nccl();
+    test_regex_nccl();
+    test_regex_abbr();
 
     return 0;
 }
