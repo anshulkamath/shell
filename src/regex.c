@@ -22,10 +22,91 @@
 */
 static __attribute__((always_inline)) int check_char(const re_t *cl, char ch) {
     return  ch != '\0' && (
-                (cl->type == DOT) || 
-                (cl->type == CHAR && cl->class.c == ch) ||
-                (cl->type == CHAR_CLASS && get_ind(cl->class.mask, ch))
-            );
+            (cl->type == DOT) || 
+            (cl->type == CHAR && cl->class.c == ch) ||
+            (cl->type == CHAR_CLASS && (cl->nccl ^ get_ind(cl->class.mask, ch)))
+        );
+}
+
+/* takes in a string regexp and returns a list of `re_t`s representing the regexp */
+re_t *re_compile(const char *regexp) {
+    const size_t REGEXP_LEN = strlen(regexp);
+    re_t *regex = calloc(REGEXP_LEN + 1, sizeof(re_t));
+
+    // flag the last element in the array
+    regex[REGEXP_LEN].type = TERMINAL;
+
+    /* separate index variable since regexp may parse multiple characters at a time */
+    size_t index = 0;
+
+    for (size_t i = 0; i < REGEXP_LEN; i++) {
+        // handle escaped sequence
+        if (regexp[i] == ESCAPE) {
+            regex[index].type = CHAR;
+
+            // if the next character is a metacharacter, make it a character
+            if (i + 1 < REGEXP_LEN && IS_METACHAR(regexp[i + 1]))
+                regex[index].class.c = regexp[i + 1];
+            else
+                regex[index].class.c = ESCAPE;
+            
+            // account for the extra consumed input
+            i++;
+        }
+        
+        else if (IS_METACHAR(regexp[i])) {
+            regex[index].class.c = regexp[i];
+            regex[index].type = regexp[i];
+        }
+
+        // allowing for character classes
+        else if (regexp[i] == BEGIN_CCL) {
+            i++;
+
+            // check for character class negation
+            if (regexp[i] == BEGIN) {
+                regex[index].nccl = 1;
+                i++;
+            }
+
+            while (regexp[i] != END_CCL) {
+                // take care of range
+                if (regexp[i - 1] != ESCAPE && regexp[i] == RANGE) {
+                    // catch if the range is not closed
+                    if (regexp[i + 1] == '\0') {
+                        fprintf(stderr, "unclosed range!\n");
+                        return NULL;
+                    }
+                    
+                    // add all the characters in the range to the mask 
+                    char ch = regexp[i - 1];
+                    for (; ch <= regexp[i + 1] && ch; ch++)
+                        set_ind(regex[index].class.mask, ch);
+                    
+                    // move regexp pointer as needed
+                    i++;
+                }
+
+                if (regexp[i] == '\0') {
+                    fprintf(stderr, "unclosed character class!\n");
+                    return NULL;
+                }
+                set_ind(regex[index].class.mask, regexp[i]);
+                i++;
+            }
+
+            regex[index].type = CHAR_CLASS;
+        }
+
+        else {
+            regex[index].class.c = regexp[i];
+            regex[index].type = CHAR;
+        }
+
+        index++;
+    }
+
+    return regex;
 }
 
 int re_is_match(const char *regexp, const char *text) {
@@ -126,80 +207,6 @@ int match_kleene(const re_t *c, const re_t *reg, const char *text) {
     } while (check_char(c, *text++));
 
     return 0;
-}
-
-/* takes in a string regexp and returns a list of `re_t`s representing the regexp */
-re_t *re_compile(const char *regexp) {
-    const size_t REGEXP_LEN = strlen(regexp);
-    re_t *regex = calloc(REGEXP_LEN + 1, sizeof(re_t));
-
-    // flag the last element in the array
-    regex[REGEXP_LEN].type = TERMINAL;
-
-    /* separate index variable since regexp may parse multiple characters at a time */
-    size_t index = 0;
-
-    for (size_t i = 0; i < REGEXP_LEN; i++) {
-        // handle escaped sequence
-        if (regexp[i] == ESCAPE) {
-            regex[index].type = CHAR;
-
-            // if the next character is a metacharacter, make it a character
-            if (i + 1 < REGEXP_LEN && IS_METACHAR(regexp[i + 1]))
-                regex[index].class.c = regexp[i + 1];
-            else
-                regex[index].class.c = ESCAPE;
-            
-            // account for the extra consumed input
-            i++;
-        }
-        
-        else if (IS_METACHAR(regexp[i])) {
-            regex[index].class.c = regexp[i];
-            regex[index].type = regexp[i];
-        }
-
-        // allowing for character classes
-        else if (regexp[i] == BEGIN_CCL) {
-            i++;
-            while (regexp[i] != END_CCL) {
-                // take care of range
-                if (regexp[i - 1] != ESCAPE && regexp[i] == RANGE) {
-                    // catch if the range is not closed
-                    if (regexp[i + 1] == '\0') {
-                        fprintf(stderr, "unclosed range!\n");
-                        return NULL;
-                    }
-                    
-                    // add all the characters in the range to the mask 
-                    char ch = regexp[i - 1];
-                    for (; ch <= regexp[i + 1] && ch; ch++)
-                        set_ind(regex[index].class.mask, ch);
-                    
-                    // move regexp pointer as needed
-                    i++;
-                }
-
-                if (regexp[i] == '\0') {
-                    fprintf(stderr, "unclosed character class!\n");
-                    return NULL;
-                }
-                set_ind(regex[index].class.mask, regexp[i]);
-                i++;
-            }
-
-            regex[index].type = CHAR_CLASS;
-        }
-
-        else {
-            regex[index].class.c = regexp[i];
-            regex[index].type = CHAR;
-        }
-
-        index++;
-    }
-
-    return regex;
 }
 
 void re_free(re_t *reg) {

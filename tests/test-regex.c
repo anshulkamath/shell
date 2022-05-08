@@ -221,6 +221,30 @@ void test_regex_ccl_ranges() {
     log_tests(tester);
 }
 
+void test_regex_ccl_nccl() {
+    testing_logger_t *tester = create_tester();
+    char *regexp;
+    
+    regexp = "^[^a-z]+";
+    expect(tester, !re_is_match(regexp, "abc"));
+    expect(tester, re_is_match(regexp, "A"));
+    expect(tester, !re_is_match(regexp, "aBC"));
+
+    regexp = "^[^a-zA-Z]+";
+    expect(tester, !re_is_match(regexp, "abcDEF"));
+    expect(tester, !re_is_match(regexp, "ABCdef"));
+    expect(tester, re_is_match(regexp, "123abc"));
+    
+    // matching -, which is escaped
+    regexp = "^[^A\\-Z\\]";
+    expect(tester, !re_is_match(regexp, "A-Z"));
+    expect(tester, !re_is_match(regexp, "-"));
+    expect(tester, !re_is_match(regexp, "\\"));
+    expect(tester, re_is_match(regexp, "B"));
+
+    log_tests(tester);
+}
+
 int main() {
     test_regex_compile_naive();
     test_naive_regex();
@@ -229,6 +253,7 @@ int main() {
     test_regex_compile_ccl();
     test_regex_ccl_naive();
     test_regex_ccl_ranges();
+    test_regex_ccl_nccl();
 
     return 0;
 }
