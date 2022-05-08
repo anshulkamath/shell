@@ -15,14 +15,16 @@
 /**
  * @brief returns a pointer to the match if the given pattern matches
  *        the given string. Support for the following constructs:
- * 
- *          c   matches any literal character `c`
- *          .   matches any single character
- *          ^   matches the beginning of the input string
- *          $   matches the end of the input string
- *          *   matches zero or more occurrences of the previous character
- *          +   matches one or more occurrences of the previous character
- *          ?   matches the previous character zero or once
+ * --------
+ *      c   CHAR        matches any literal character `c`
+ *      .   DOT         matches any single character
+ *      ^   BEGIN       matches the beginning of the input string
+ *      $   END         matches the end of the input string
+ *      *   STAR        matches zero or more occurrences of the previous character
+ *      +   PLUS        matches one or more occurrences of the previous character
+ *      ?   OPTIONAL    matches the previous character zero or once
+ *    [abc] CHAR_CLASS  matches any character inside the class
+ *    [^..] NEG_CLASS   matches any character not inside the class
  * 
  * @param pattern   a pointer to the pattern to check
  * @param string    a pointer to the string to match
