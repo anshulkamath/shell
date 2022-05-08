@@ -69,6 +69,7 @@ re_t *re_compile(const char *regexp) {
                 i++;
             }
 
+            // add all characters to class bit map
             while (regexp[i] != END_CCL) {
                 // take care of range
                 if (regexp[i - 1] != ESCAPE && regexp[i] == RANGE) {
@@ -91,6 +92,8 @@ re_t *re_compile(const char *regexp) {
                     fprintf(stderr, "unclosed character class!\n");
                     return NULL;
                 }
+
+                // set flag in bit map to indicate part of char class
                 set_ind(regex[index].class.mask, regexp[i]);
                 i++;
             }
@@ -175,11 +178,8 @@ int match_here(const re_t *reg, const char *text) {
             continue;
         }
 
-        /* if we are not at the end of the string and either:
-         *  - the metacharacter matches
-         *  - the literal character matches
-         *  - the literal character is in the character class
-         */ 
+        // if the next character does not pass the subsequent regex task,
+        // break and return 0
         else if (!check_char(reg, text[0]))
             break;
         
