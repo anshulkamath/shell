@@ -69,25 +69,32 @@ void test_naive_regex() {
     testing_logger_t *tester = create_tester();
     char *test_reg = "^Hello .orld.";
     
-    expect(tester, !!re_is_match(test_reg, "Hello World!"));
-    expect(tester, !!re_is_match(test_reg, "Hello world."));
+    expect(tester, re_is_match(test_reg, "Hello World!"));
+    expect(tester, re_is_match(test_reg, "Hello world."));
     expect(tester, !re_is_match(test_reg, "world."));
     expect(tester, !re_is_match(test_reg, "random string."));
 
     test_reg = "^Hello .orld*!";
 
     // expect kleene star to accept arbitrary characters (0 or more)
-    expect(tester, !!re_is_match(test_reg, "Hello worlddddddddd!"));
-    expect(tester, !!re_is_match(test_reg, "Hello worl!"));
+    expect(tester, re_is_match(test_reg, "Hello worlddddddddd!"));
+    expect(tester, re_is_match(test_reg, "Hello worl!"));
 
     // expect empty regex to match anything
-    expect(tester, !!re_is_match("", "test"));
+    expect(tester, re_is_match("", "test"));
 
     // expect non-empty regex and empty string to not match
     expect(tester, !re_is_match("a", ""));
 
     // expect $ to work
-    expect(tester, !!re_is_match("world$", "this is the world"));
+    expect(tester, re_is_match("world$", "this is the world"));
+
+    test_reg = "a*bc";
+    expect(tester, re_is_match(test_reg, "bc"));
+    expect(tester, re_is_match(test_reg, "abc"));
+    expect(tester, re_is_match(test_reg, "aabc"));
+    expect(tester, !re_is_match(test_reg, "a"));
+    expect(tester, !re_is_match(test_reg, "ab"));
 
     log_tests(tester);
 }
@@ -96,22 +103,22 @@ void test_regex_escape() {
     testing_logger_t *tester = create_tester();
 
     // simple examples of escaping
-    expect(tester, !!re_is_match("Hello world\\.", "Hello world."));
+    expect(tester, re_is_match("Hello world\\.", "Hello world."));
     expect(tester, !re_is_match("Hello world\\.", "Hello world"));
 
-    expect(tester, !!re_is_match("Hello world\\$", "Hello world$"));
+    expect(tester, re_is_match("Hello world\\$", "Hello world$"));
     expect(tester, !re_is_match("Hello world\\$", "Hello world"));
 
-    expect(tester, !!re_is_match("Hello world\\*", "Hello world*"));
+    expect(tester, re_is_match("Hello world\\*", "Hello world*"));
     expect(tester, !re_is_match("Hello world\\*", "Hello worldddd"));
 
     // escaping at beginning
-    expect(tester, !!re_is_match("\\$Hello world", "$Hello world"));
+    expect(tester, re_is_match("\\$Hello world", "$Hello world"));
     expect(tester, !re_is_match("\\$Hello world", "Hello world"));
 
     // kleene star on `\`
-    expect(tester, !!re_is_match("Hello world\\\\*.", "Hello world\\\\\\."));
-    expect(tester, !!re_is_match("Hello world\\\\*.", "Hello world."));
+    expect(tester, re_is_match("Hello world\\\\*.", "Hello world\\\\\\."));
+    expect(tester, re_is_match("Hello world\\\\*.", "Hello world."));
 
     log_tests(tester);
 }
@@ -119,16 +126,22 @@ void test_regex_escape() {
 void test_regex_some_many() {
     testing_logger_t *tester = create_tester();
 
-    expect(tester, !!re_is_match("Hello world!+", "Hello world!"));
-    expect(tester, !!re_is_match("Hello world!+", "Hello world!!!!"));
-    expect(tester, !!re_is_match("Hello world.+", "Hello worlddddd"));
+    expect(tester, re_is_match("Hello world!+", "Hello world!"));
+    expect(tester, re_is_match("Hello world!+", "Hello world!!!!"));
+    expect(tester, re_is_match("Hello world.+", "Hello worlddddd"));
     expect(tester, !re_is_match("Hello world.+", "Hello world"));
-    expect(tester, !!re_is_match("Hello world!\\+", "Hello world!+"));
+    expect(tester, re_is_match("Hello world!\\+", "Hello world!+"));
 
-    expect(tester, !!re_is_match("Hello world!?", "Hello world!"));
-    expect(tester, !!re_is_match("Hello world!?", "Hello world"));
-    expect(tester, !!re_is_match("Hello world.?", "Hello world!!!!"));
-    expect(tester, !!re_is_match("Hello world!\\?\\?", "Hello world!??"));
+    expect(tester, re_is_match("Hello world!?", "Hello world!"));
+    expect(tester, re_is_match("Hello world!?", "Hello world"));
+    expect(tester, re_is_match("Hello world.?", "Hello world!!!!"));
+    expect(tester, re_is_match("Hello world!\\?\\?", "Hello world!??"));
+
+    expect(tester, !re_is_match("a+bc", "bc"));
+    expect(tester, re_is_match("a+bc", "abc"));
+    expect(tester, re_is_match("a+bc", "aabc"));
+    expect(tester, !re_is_match("a+bc", "a"));
+    expect(tester, !re_is_match("a+bc", "ab"));
 
     log_tests(tester);
 }
@@ -172,27 +185,27 @@ void test_regex_ccl_naive() {
     char *regexp;
     
     regexp = "[abc]";
-    expect(tester, !!re_is_match(regexp, "a"));
-    expect(tester, !!re_is_match(regexp, "b"));
-    expect(tester, !!re_is_match(regexp, "c"));
+    expect(tester, re_is_match(regexp, "a"));
+    expect(tester, re_is_match(regexp, "b"));
+    expect(tester, re_is_match(regexp, "c"));
     expect(tester, !re_is_match(regexp, "d"));
     expect(tester, !re_is_match(regexp, "A"));
 
     // should match since first character (and hence whole regexp) matches
-    expect(tester, !!re_is_match(regexp, "ab"));
+    expect(tester, re_is_match(regexp, "ab"));
 
     regexp = "[abc]*";
-    expect(tester, !!re_is_match(regexp, "aaa"));
-    expect(tester, !!re_is_match(regexp, "bbb"));
-    expect(tester, !!re_is_match(regexp, "ccc"));
-    expect(tester, !!re_is_match(regexp, "abc"));
-    expect(tester, !!re_is_match(regexp, "abcabc"));
+    expect(tester, re_is_match(regexp, "aaa"));
+    expect(tester, re_is_match(regexp, "bbb"));
+    expect(tester, re_is_match(regexp, "ccc"));
+    expect(tester, re_is_match(regexp, "abc"));
+    expect(tester, re_is_match(regexp, "abcabc"));
     
     // should match since 0 [abc]s is possible
-    expect(tester, !!re_is_match(regexp, "d"));
+    expect(tester, re_is_match(regexp, "d"));
     
-    expect(tester, !!re_is_match(regexp, "abcA"));
-    expect(tester, !!re_is_match(regexp, "abcd"));
+    expect(tester, re_is_match(regexp, "abcA"));
+    expect(tester, re_is_match(regexp, "abcd"));
 
     log_tests(tester);
 }
@@ -202,20 +215,20 @@ void test_regex_ccl_ranges() {
     char *regexp;
     
     regexp = "[a-z]+";
-    expect(tester, !!re_is_match(regexp, "abc"));
+    expect(tester, re_is_match(regexp, "abc"));
     expect(tester, !re_is_match(regexp, "A"));
-    expect(tester, !!re_is_match(regexp, "aBC"));
+    expect(tester, re_is_match(regexp, "aBC"));
 
     regexp = "^[a-zA-Z]+";
-    expect(tester, !!re_is_match(regexp, "abcDEF"));
-    expect(tester, !!re_is_match(regexp, "ABCdef"));
+    expect(tester, re_is_match(regexp, "abcDEF"));
+    expect(tester, re_is_match(regexp, "ABCdef"));
     expect(tester, !re_is_match(regexp, "123abc"));
     
     // matching -, which is escaped
     regexp = "[A\\-Z\\]";
-    expect(tester, !!re_is_match(regexp, "A-Z"));
-    expect(tester, !!re_is_match(regexp, "-"));
-    expect(tester, !!re_is_match(regexp, "\\"));
+    expect(tester, re_is_match(regexp, "A-Z"));
+    expect(tester, re_is_match(regexp, "-"));
+    expect(tester, re_is_match(regexp, "\\"));
     expect(tester, !re_is_match(regexp, "B"));
 
     log_tests(tester);
@@ -227,20 +240,20 @@ void test_regex_nccl() {
     
     regexp = "^[^a-z]+";
     expect(tester, !re_is_match(regexp, "abc"));
-    expect(tester, !!re_is_match(regexp, "A"));
+    expect(tester, re_is_match(regexp, "A"));
     expect(tester, !re_is_match(regexp, "aBC"));
 
     regexp = "^[^a-zA-Z]+";
     expect(tester, !re_is_match(regexp, "abcDEF"));
     expect(tester, !re_is_match(regexp, "ABCdef"));
-    expect(tester, !!re_is_match(regexp, "123abc"));
+    expect(tester, re_is_match(regexp, "123abc"));
     
     // matching -, which is escaped
     regexp = "^[^A\\-Z\\]";
     expect(tester, !re_is_match(regexp, "A-Z"));
     expect(tester, !re_is_match(regexp, "-"));
     expect(tester, !re_is_match(regexp, "\\"));
-    expect(tester, !!re_is_match(regexp, "B"));
+    expect(tester, re_is_match(regexp, "B"));
 
     log_tests(tester);
 }
@@ -276,6 +289,21 @@ void test_regex_abbr() {
     log_tests(tester);
 }
 
+void test_regex_return() {
+    testing_logger_t *tester = create_tester();
+    char *res;
+
+    res = re_get_match("\\w+@\\w+\\.com", "this is a test: testemail@gmail.com");
+    expect(tester, !strcmp(res, "testemail@gmail.com"));
+    free(res);
+
+    res = re_get_match("\\w+@\\w+\\.com", "this is a test");
+    expect(tester, res == NULL);
+    free(res);
+
+    log_tests(tester);
+}
+
 int main() {
     test_regex_compile_naive();
     test_naive_regex();
@@ -286,6 +314,7 @@ int main() {
     test_regex_ccl_ranges();
     test_regex_nccl();
     test_regex_abbr();
+    test_regex_return();
 
     return 0;
 }

@@ -42,7 +42,7 @@ typedef enum class {
  *      S   NON_ SPACE  [^\n\t\r ]
  */
 typedef enum abbr {
-    DIGIT = 'd', N_DIGIT = 'D', ALPH = 'a', N_ALPH = 'A', SPACE = 's', N_SPACE = 'S', WORD = 'w'
+    DIGIT = 'd', N_DIGIT = 'D', ALPH = 'a', N_ALPH = 'A', SPACE = 's', N_SPACE = 'S', WORD = 'w', N_WORD = 'W'
 } abbr_t;
 
 /***********************************
@@ -108,7 +108,7 @@ void re_free(re_t *reg);
  * @param text   the text to match
  * @return int 
  */
-int match_here(const re_t *reg, const char *text);
+char *match_here(const re_t *reg, char *text);
 
 /**
  * @brief same as match_here, but matches an arbitrary number of
@@ -121,6 +121,6 @@ int match_here(const re_t *reg, const char *text);
  * @param text  the text to match
  * @return int 
  */
-int match_kleene(const re_t *c, const re_t *reg, const char *text);
+char *match_kleene(const re_t *c, const re_t *reg, char *text);
 
 #endif

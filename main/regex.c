@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "regex.h"
 
 int main(int argc, char **argv) {
@@ -6,12 +7,13 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Usage: reg <pattern> <string>\n");
     }
     
-    const char *match = re_is_match(argv[1], argv[2]);
+    char *match = re_get_match(argv[1], argv[2]);
     
     printf("A match was%sfound\n", match ? " " : " not ");
 
-    if (match) {
+    if (match)
         printf("\nMatch: %s\n", match);
-    }
+
+    free(match);
     return 0;
 }
