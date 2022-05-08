@@ -27,18 +27,30 @@
  * 
  */
 typedef enum class { 
-    CHAR = 1, CHAR_CLASS, DOT = '.', STAR = '*', PLUS = '+', OPTIONAL = '?', BEGIN = '^', END = '$', TERMINAL = '\0'
+    CHAR = 1, CHAR_CLASS, DOT = '.', STAR = '*', PLUS = '+', OPTIONAL = '?', BEGIN = '^', END = '$', TERMINAL = '\0',
+    BEGIN_CCL = '[', END_CCL = ']', RANGE = '-', ESCAPE = '\\'
 } class_t;
 
 /* type to manage character classes */
 typedef struct re {
     union {
-        int     c;      /* the character */
-        char    *ccl;   /* list of the characters in class */
-    } class;        /* union to the character or character class */
-    class_t type;   /* CHAR, STAR, etc. */
-    int     nccl;   /* true if character class is negated */
+        int     c;          /* the character */
+        long    mask[4];    /* set where 1 in `i`th bit means char in class */
+    } class;                /* union to the character or character class */
+    class_t type;           /* CHAR, STAR, etc. */
+    int     nccl;           /* true if character class is negated */
 } re_t;
+
+/* Helper definitions */
+#define BITS_LONG (8 * sizeof(long))
+
+inline __attribute__ ((always_inline)) void set_ind(long arr[4], int i) {
+    arr[i / BITS_LONG] |= (1l << (i % BITS_LONG));
+}
+
+inline __attribute__ ((always_inline)) int get_ind(const long arr[4], int i) {
+    return (arr[i / BITS_LONG] >> (i % BITS_LONG)) & 1;
+}
 
 /**
  * @brief compiles a regexp pattern into a list of `re_t`s
@@ -73,11 +85,11 @@ int match_here(const re_t *reg, const char *text);
  * NOTE:  this is a private function - use re_is_match instead
  * TODO:  move this to a separate file
  * 
- * @param c      the character to match at the beginning of the string
- * @param reg the pattern to match against
- * @param text   the text to match
+ * @param c     the regex class to match arbitrarily
+ * @param reg   the pattern to match against
+ * @param text  the text to match
  * @return int 
  */
-int match_kleene(int c, const re_t *reg, const char *text);
+int match_kleene(const re_t *c, const re_t *reg, const char *text);
 
 #endif
