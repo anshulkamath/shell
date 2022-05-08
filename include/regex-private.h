@@ -41,6 +41,17 @@ typedef struct re {
     int     nccl;           /* true if character class is negated */
 } re_t;
 
+/* Helper definitions */
+#define BITS_LONG (8 * sizeof(long))
+
+inline __attribute__ ((always_inline)) void set_ind(long arr[4], int i) {
+    arr[i / BITS_LONG] |= (1l << (i % BITS_LONG));
+}
+
+inline __attribute__ ((always_inline)) int get_ind(const long arr[4], int i) {
+    return (arr[i / BITS_LONG] >> (i % BITS_LONG)) & 1;
+}
+
 /**
  * @brief compiles a regexp pattern into a list of `re_t`s
  * NOTE:  this function allocates memory on the heap: must free
@@ -74,11 +85,11 @@ int match_here(const re_t *reg, const char *text);
  * NOTE:  this is a private function - use re_is_match instead
  * TODO:  move this to a separate file
  * 
- * @param c      the character to match at the beginning of the string
- * @param reg the pattern to match against
- * @param text   the text to match
+ * @param c     the regex class to match arbitrarily
+ * @param reg   the pattern to match against
+ * @param text  the text to match
  * @return int 
  */
-int match_kleene(int c, const re_t *reg, const char *text);
+int match_kleene(const re_t *c, const re_t *reg, const char *text);
 
 #endif

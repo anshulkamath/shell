@@ -4,9 +4,6 @@
 #include "testing-logger.h"
 #include <string.h>
 
-#define BITS_LONG (8 * sizeof(long))
-#define GET_IND(arr, i) ((arr)[(i) / BITS_LONG] >> ((i) % BITS_LONG)) & 1
-
 void test_regex_compile_naive() {
     testing_logger_t *tester = create_tester();
     re_t *reg_list;
@@ -144,9 +141,9 @@ void test_regex_compile_ccl() {
     regexp = "[abc]";
     reg_list = re_compile(regexp);
     expect(tester, reg_list[0].type == CHAR_CLASS);
-    expect(tester, GET_IND(reg_list[0].class.mask, 'a'));
-    expect(tester, GET_IND(reg_list[0].class.mask, 'b'));
-    expect(tester, GET_IND(reg_list[0].class.mask, 'c'));
+    expect(tester, get_ind(reg_list[0].class.mask, 'a'));
+    expect(tester, get_ind(reg_list[0].class.mask, 'b'));
+    expect(tester, get_ind(reg_list[0].class.mask, 'c'));
     expect(tester, reg_list[0].nccl == 0);
     re_free(reg_list);
 
@@ -157,9 +154,9 @@ void test_regex_compile_ccl() {
     expect(tester, reg_list[0].nccl == 0);
     
     expect(tester, reg_list[1].type == CHAR_CLASS);
-    expect(tester, GET_IND(reg_list[1].class.mask, 'a'));
-    expect(tester, GET_IND(reg_list[1].class.mask, 'b'));
-    expect(tester, GET_IND(reg_list[1].class.mask, 'c'));
+    expect(tester, get_ind(reg_list[1].class.mask, 'a'));
+    expect(tester, get_ind(reg_list[1].class.mask, 'b'));
+    expect(tester, get_ind(reg_list[1].class.mask, 'c'));
     expect(tester, reg_list[1].nccl == 0);
 
     expect(tester, reg_list[2].type == STAR);
@@ -170,12 +167,43 @@ void test_regex_compile_ccl() {
     log_tests(tester);
 }
 
+void test_regex_ccl_naive() {
+    testing_logger_t *tester = create_tester();
+    char *regexp;
+    
+    regexp = "[abc]";
+    expect(tester, re_is_match(regexp, "a"));
+    expect(tester, re_is_match(regexp, "b"));
+    expect(tester, re_is_match(regexp, "c"));
+    expect(tester, !re_is_match(regexp, "d"));
+    expect(tester, !re_is_match(regexp, "A"));
+
+    // should match since first character (and hence whole regexp) matches
+    expect(tester, re_is_match(regexp, "ab"));
+
+    regexp = "[abc]*";
+    expect(tester, re_is_match(regexp, "aaa"));
+    expect(tester, re_is_match(regexp, "bbb"));
+    expect(tester, re_is_match(regexp, "ccc"));
+    expect(tester, re_is_match(regexp, "abc"));
+    expect(tester, re_is_match(regexp, "abcabc"));
+    
+    // should match since 0 [abc]s is possible
+    expect(tester, re_is_match(regexp, "d"));
+    
+    expect(tester, re_is_match(regexp, "abcA"));
+    expect(tester, re_is_match(regexp, "abcd"));
+
+    log_tests(tester);
+}
+
 int main() {
     test_regex_compile_naive();
     test_naive_regex();
     test_regex_escape();
     test_regex_some_many();
     test_regex_compile_ccl();
+    test_regex_ccl_naive();
 
     return 0;
 }

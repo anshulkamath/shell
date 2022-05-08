@@ -8,9 +8,6 @@
 #define IS_METACHAR(x) \
     (x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END
 
-#define BITS_LONG (sizeof(long) * 8)
-#define SET_IND(arr, i) (arr)[(i) / BITS_LONG] |= (1l << ((i) % BITS_LONG))
-
 int re_is_match(const char *regexp, const char *text) {
     re_t *reg = re_compile(regexp);
     int status;
@@ -43,7 +40,7 @@ int match_here(const re_t *reg, const char *text) {
 
         // if kleene star, then defer to helper function
         else if (reg[1].type == STAR)
-            return match_kleene(reg[0].class.c, reg + 2, text);
+            return match_kleene(&reg[0], reg + 2, text);
         
         // if we hit a termination character and are at the end of the regexp
         else if (reg[0].type == END && reg[1].type == TERMINAL)
@@ -53,7 +50,7 @@ int match_here(const re_t *reg, const char *text) {
         else if (reg[1].type == PLUS) {
             if (text[0] == '\0' || !(reg[0].type == DOT || text[0] == reg[0].class.c))
                 return 0;
-            return match_kleene(reg[0].class.c, reg + 2, text);
+            return match_kleene(&reg[0], reg + 2, text);
         }
 
         // if we hit a `?` character, check 0 or 1
@@ -77,13 +74,17 @@ int match_here(const re_t *reg, const char *text) {
             continue;
         }
 
-        // if we are not at the end of the string and either the regexp matches the
-        // character literal or the regexp has the appropriate metacharacter
+        /* if we are not at the end of the string and either:
+         *  - the metacharacter matches
+         *  - the literal character matches
+         *  - the literal character is in the character class
+         */ 
         else if (
             *text == '\0' || 
             !(
                 (reg[0].type == DOT) || 
-                (reg[0].type == CHAR && reg[0].class.c == text[0])
+                (reg[0].type == CHAR && reg[0].class.c == text[0]) ||
+                (reg[0].type == CHAR_CLASS && get_ind(reg[0].class.mask, *text))
             )
         )
             break;
@@ -97,13 +98,30 @@ int match_here(const re_t *reg, const char *text) {
 }
 
 /* matches c*regexp at beginning of text */
-int match_kleene(int c, const re_t *reg, const char *text) {
+int match_kleene(const re_t *c, const re_t *reg, const char *text) {
+    // check for correct type coming in
+    if (!(c->type == CHAR || c->type == DOT || c->type == CHAR_CLASS)) {
+        fprintf(stderr, "incorrect type given to match_kleene: %d\n", c->type);
+        return 0;
+    }
+    
     // while there are matches for kleene character, check if the remaining
     // string matches the regexp
+    if (c->type == CHAR_CLASS) {
+        do {
+            if (match_here(reg, text))
+                return 1;
+        } while (*text != '\0' && !(get_ind(c->class.mask, *text++)));
+
+        return 0;
+    }
+
+    char ch = c->class.c;
+    // simple case of single character or dot operator
     do {
         if (match_here(reg, text))
             return 1;
-    } while (*text != '\0' && (*text++ == c || c == '.'));
+    } while (*text != '\0' && (*text++ == ch || ch == '.'));
 
     return 0;
 }
@@ -144,10 +162,10 @@ re_t *re_compile(const char *regexp) {
             i++;
             while (regexp[i] != END_CCL) {
                 if (regexp[i] == '\0') {
-                    fprintf(stderr, "unclosed character class!");
+                    fprintf(stderr, "unclosed character class!\n");
                     return NULL;
                 }
-                SET_IND(regex[index].class.mask, regexp[i]);
+                set_ind(regex[index].class.mask, regexp[i]);
                 i++;
             }
 
