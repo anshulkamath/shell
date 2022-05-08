@@ -11,7 +11,7 @@ OBJ_FILES = $(addprefix obj/,$(SRC_FILES:=.o))
 CYAN =\x1b[36m
 WHITE=\x1b[0m
 
-MAIN = 
+MAIN = reg
 MAIN_BINS = $(addprefix bin/, $(MAIN))
 TEST_BINS = $(addprefix bin/test-, $(SRC_FILES))
 
