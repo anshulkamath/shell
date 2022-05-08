@@ -9,7 +9,7 @@
     ((x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END)
 
 #define IS_ABBR(x) \
-    ((x) == DIGIT || (x) == N_DIGIT || (x) == ALPH || (x) == N_ALPH || (x) == SPACE || (x) == N_SPACE || (x) == WORD)
+    ((x) == DIGIT || (x) == N_DIGIT || (x) == ALPH || (x) == N_ALPH || (x) == SPACE || (x) == N_SPACE || (x) == WORD || (x) == N_WORD)
 
 /* hard-coded manual patterns */
 static char RE_DIGIT[]    = "[0-9]";
@@ -19,6 +19,7 @@ static char RE_N_ALPH[]   = "[^a-z]";
 static char RE_SPACE[]    = "[\n\t\r ]";
 static char RE_N_SPACE[]  = "[^\n\t\r ]";
 static char RE_WORD[]     = "[a-zA-Z0-9]";
+static char RE_N_WORD[]     = "[^a-zA-Z0-9]";
 
 /**
  * @brief checks a single character using a given class by checking if:
@@ -85,6 +86,9 @@ char *re_precompile(const char *regexp) {
                 break;
             case WORD:
                 pattern = RE_WORD;
+                break;
+            case N_WORD:
+                pattern = RE_N_WORD;
                 break;
         }
 
@@ -187,7 +191,7 @@ re_t *re_compile(const char *regexp) {
     return regex;
 }
 
-const char *re_is_match(const char *regexp, const char *text) {
+int re_is_match(char *regexp, char *text) {
     char *exp_regexp = re_precompile(regexp);
     re_t *reg = re_compile(exp_regexp);
     free(exp_regexp);
@@ -196,54 +200,90 @@ const char *re_is_match(const char *regexp, const char *text) {
 
     // checks if the text starts as desired
     if (reg[0].type == BEGIN) {
-        status = match_here(reg + 1, text);
+        status = !!match_here(reg + 1, text);
         re_free(reg);
-        return status ? text : NULL;
+        return status;
     }
     
     // match starting at any point in the text (even if text is empty)
     do {
-        if ((status = match_here(reg, text))) {
+        if ((status = !!match_here(reg, text))) {
             re_free(reg);
-            return status ? text : NULL;
+            return status;
         }
     } while (*text++ != '\0');
 
     re_free(reg);
-    return NULL;
+    return 0;
+}
+
+char *re_get_match(char *regexp, char *text) {
+    char *exp_regexp = re_precompile(regexp);
+    re_t *reg = re_compile(exp_regexp);
+    free(exp_regexp);
+
+    char *end_match;
+
+    // checks if the text starts as desired
+    if (reg[0].type == BEGIN) {
+        end_match = match_here(reg + 1, text);
+    } else {
+        // match starting at any point in the text (even if text is empty)
+        do {
+            if ((end_match = match_here(reg, text)))
+                break;
+        } while (*text++ != '\0');
+    }
+
+    re_free(reg);
+    if (!end_match) return NULL;
+    
+    char *str = calloc(1, (end_match - text + 1));
+    memcpy(str, text, (end_match - text));
+    return str;
 }
 
 /* search for regexp at the beginning of text */
-int match_here(const re_t *reg, const char *text) {
+char *match_here(const re_t *reg, char *text) {
     while (1) {
         // if there are no more expressions to check, we matched everything
         if (reg[0].type == TERMINAL)
-            return 1;
+            return text;
 
         // if kleene star, then defer to helper function
-        else if (reg[1].type == STAR)
-            return match_kleene(&reg[0], reg + 2, text);
+        else if (reg[1].type == STAR) {
+            if (!(text = match_kleene(&reg[0], reg + 2, text)))
+                return NULL;
+            
+            reg += 2;
+            continue;
+        }
         
         // if we hit a termination character and are at the end of the regexp
         else if (reg[0].type == END && reg[1].type == TERMINAL)
-            return *text == '\0';
+            return *text == '\0' ? text : NULL;
 
         // if we hit a `+` character, check one or more
         else if (reg[1].type == PLUS) {
             if (!check_char(reg, text[0]))
-                return 0;
-            return match_kleene(&reg[0], reg + 2, text);
+                return NULL;
+            
+            if (!(text = match_kleene(&reg[0], reg + 2, text)))
+                return NULL;
+            
+            reg += 2;
+            continue;
         }
 
         // if we hit a `?` character, check 0 or 1
         else if (reg[1].type == OPTIONAL) {
             // if we are at the end of our string, check that we are done matching
             if (text[0] == '\0')
-                return reg[2].type == TERMINAL;
+                return reg[2].type == TERMINAL ? text : NULL;
                 
             // there is more than one instance of the character
             if (reg[0].class.c == text[1])
-                return 0;
+                return NULL;
             
             // if the first character is the same, then we consume it
             if (reg[0].class.c == text[0] || (reg[0].type == DOT))
@@ -266,11 +306,11 @@ int match_here(const re_t *reg, const char *text) {
     }
 
     // if none of the above hold, no match was found and return false
-    return 0;
+    return NULL;
 }
 
 /* matches c*regexp at beginning of text */
-int match_kleene(const re_t *c, const re_t *reg, const char *text) {
+char *match_kleene(const re_t *c, const re_t *reg, char *text) {
     // check for correct type coming in
     if (!(c->type == CHAR || c->type == DOT || c->type == CHAR_CLASS)) {
         fprintf(stderr, "incorrect type given to match_kleene: %d\n", c->type);
@@ -281,10 +321,10 @@ int match_kleene(const re_t *c, const re_t *reg, const char *text) {
     // string matches the regexp
     do {
         if (match_here(reg, text))
-            return 1;
+            return text;
     } while (check_char(c, *text++));
 
-    return 0;
+    return NULL;
 }
 
 void re_free(re_t *reg) {
