@@ -27,17 +27,18 @@
  * 
  */
 typedef enum class { 
-    CHAR = 1, CHAR_CLASS, DOT = '.', STAR = '*', PLUS = '+', OPTIONAL = '?', BEGIN = '^', END = '$', TERMINAL = '\0'
+    CHAR = 1, CHAR_CLASS, DOT = '.', STAR = '*', PLUS = '+', OPTIONAL = '?', BEGIN = '^', END = '$', TERMINAL = '\0',
+    BEGIN_CCL = '[', END_CCL = ']'
 } class_t;
 
 /* type to manage character classes */
 typedef struct re {
     union {
-        int     c;      /* the character */
-        char    *ccl;   /* list of the characters in class */
-    } class;        /* union to the character or character class */
-    class_t type;   /* CHAR, STAR, etc. */
-    int     nccl;   /* true if character class is negated */
+        int     c;          /* the character */
+        long    mask[4];    /* set where 1 in `i`th bit means char in class */
+    } class;                /* union to the character or character class */
+    class_t type;           /* CHAR, STAR, etc. */
+    int     nccl;           /* true if character class is negated */
 } re_t;
 
 /**

@@ -1,11 +1,15 @@
 #include "regex.h"
 #include "regex-private.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define IS_METACHAR(x) \
     (x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END
+
+#define BITS_LONG (sizeof(long) * 8)
+#define SET_IND(arr, i) (arr)[(i) / BITS_LONG] |= (1l << ((i) % BITS_LONG))
 
 int re_is_match(const char *regexp, const char *text) {
     re_t *reg = re_compile(regexp);
@@ -38,22 +42,22 @@ int match_here(const re_t *reg, const char *text) {
             return 1;
 
         // if kleene star, then defer to helper function
-        if (reg[1].type == STAR)
+        else if (reg[1].type == STAR)
             return match_kleene(reg[0].class.c, reg + 2, text);
         
         // if we hit a termination character and are at the end of the regexp
-        if (reg[0].type == END && reg[1].type == TERMINAL)
+        else if (reg[0].type == END && reg[1].type == TERMINAL)
             return *text == '\0';
 
         // if we hit a `+` character, check one or more
-        if (reg[1].type == PLUS) {
+        else if (reg[1].type == PLUS) {
             if (text[0] == '\0' || !(reg[0].type == DOT || text[0] == reg[0].class.c))
                 return 0;
             return match_kleene(reg[0].class.c, reg + 2, text);
         }
 
         // if we hit a `?` character, check 0 or 1
-        if (reg[1].type == OPTIONAL) {
+        else if (reg[1].type == OPTIONAL) {
             // if we are at the end of our string, check that we are done matching
             if (text[0] == '\0')
                 return reg[2].type == TERMINAL;
@@ -75,7 +79,7 @@ int match_here(const re_t *reg, const char *text) {
 
         // if we are not at the end of the string and either the regexp matches the
         // character literal or the regexp has the appropriate metacharacter
-        if (
+        else if (
             *text == '\0' || 
             !(
                 (reg[0].type == DOT) || 
@@ -135,6 +139,21 @@ re_t *re_compile(const char *regexp) {
             regex[index].type = regexp[i];
         }
 
+        // allowing for character classes
+        else if (regexp[i] == BEGIN_CCL) {
+            i++;
+            while (regexp[i] != END_CCL) {
+                if (regexp[i] == '\0') {
+                    fprintf(stderr, "unclosed character class!");
+                    return NULL;
+                }
+                SET_IND(regex[index].class.mask, regexp[i]);
+                i++;
+            }
+
+            regex[index].type = CHAR_CLASS;
+        }
+
         else {
             regex[index].class.c = regexp[i];
             regex[index].type = CHAR;
@@ -147,12 +166,5 @@ re_t *re_compile(const char *regexp) {
 }
 
 void re_free(re_t *reg) {
-    for (size_t i = 0; reg[i].type != TERMINAL; i++) {
-        // free the buffer of the character class, if possible
-        if (reg[i].type == CHAR_CLASS)
-            free(reg[i].class.ccl);
-    }
-
-    // free the dynamically located array itself
     free(reg);
 }
