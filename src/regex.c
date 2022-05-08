@@ -6,7 +6,19 @@
 #include <string.h>
 
 #define IS_METACHAR(x) \
-    (x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END
+    ((x) == DOT || (x) == STAR || (x) == PLUS || (x) == OPTIONAL || (x) == BEGIN || (x) == END)
+
+#define IS_ABBR(x) \
+    ((x) == DIGIT || (x) == N_DIGIT || (x) == ALPH || (x) == N_ALPH || (x) == SPACE || (x) == N_SPACE || (x) == WORD)
+
+/* hard-coded manual patterns */
+static char RE_DIGIT[]    = "[0-9]";
+static char RE_N_DIGIT[]  = "[^0-9]";
+static char RE_ALPH[]     = "[a-z]";
+static char RE_N_ALPH[]   = "[^a-z]";
+static char RE_SPACE[]    = "[\n\t\r ]";
+static char RE_N_SPACE[]  = "[^\n\t\r ]";
+static char RE_WORD[]     = "[a-zA-Z0-9]";
 
 /**
  * @brief checks a single character using a given class by checking if:
@@ -26,6 +38,69 @@ static __attribute__((always_inline)) int check_char(const re_t *cl, char ch) {
             (cl->type == CHAR && cl->class.c == ch) ||
             (cl->type == CHAR_CLASS && (cl->nccl ^ get_ind(cl->class.mask, ch)))
         );
+}
+
+char *re_precompile(const char *regexp) {
+    const int RE_LEN = strlen(regexp);
+    int length = RE_LEN;
+
+    char *str = calloc(1, length);
+    int idx = 0; /* index of str */
+
+    for (int i = 0; regexp[i]; i++) {
+        if (idx == length) {
+            length *= 2;
+            str = realloc(str, length);
+        }
+
+        // we do not encounter a shortcut character, copy it to the buffer and move on
+        if (!(regexp[i] == '\\' && IS_ABBR(regexp[i + 1]))) {
+            str[idx++] = regexp[i];
+            continue;
+        }
+
+        // we have encountered a shortcut
+        i++;  // move pointer to shortcut character
+
+        // get pattern
+        char *pattern;
+        switch(regexp[i]) {
+            case DIGIT:
+                pattern = RE_DIGIT;
+                break;
+            case N_DIGIT:
+                pattern = RE_N_DIGIT;
+                break;
+            case ALPH:
+                pattern = RE_ALPH;
+                break;
+            case N_ALPH:
+                pattern = RE_N_ALPH;
+                break;
+            case SPACE:
+                pattern = RE_SPACE;
+                break;
+            case N_SPACE:
+                pattern = RE_N_SPACE;
+                break;
+            case WORD:
+                pattern = RE_WORD;
+                break;
+        }
+
+        // guarantee space for pattern
+        int patt_len = strlen(pattern);
+        if (idx + patt_len >= length) {
+            length *= 2;
+            str = realloc(str, length);
+        }
+
+        // copy pattern to string
+        memcpy(str + idx, pattern, patt_len);
+        idx += patt_len;
+    }
+
+    return str;
 }
 
 /* takes in a string regexp and returns a list of `re_t`s representing the regexp */
@@ -113,7 +188,10 @@ re_t *re_compile(const char *regexp) {
 }
 
 const char *re_is_match(const char *regexp, const char *text) {
-    re_t *reg = re_compile(regexp);
+    char *exp_regexp = re_precompile(regexp);
+    re_t *reg = re_compile(exp_regexp);
+    free(exp_regexp);
+
     int status;
 
     // checks if the text starts as desired

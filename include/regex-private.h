@@ -31,7 +31,23 @@ typedef enum class {
     BEGIN_CCL = '[', END_CCL = ']', RANGE = '-', ESCAPE = '\\'
 } class_t;
 
-/* type to manage character classes */
+/**
+ * @brief shortcuts for common regex shortcuts
+ * --------
+ *      d   DIGIT       [0-9]
+ *      D   NON_DIGIT   [^0-9]
+ *      a   ALPHA       [a-z]
+ *      A   NON_ALPH    [^a-z]
+ *      s   SPACE       [\n\t\r ]
+ *      S   NON_ SPACE  [^\n\t\r ]
+ */
+typedef enum abbr {
+    DIGIT = 'd', N_DIGIT = 'D', ALPH = 'a', N_ALPH = 'A', SPACE = 's', N_SPACE = 'S', WORD = 'w'
+} abbr_t;
+
+/***********************************
+ *        Regexp Structure         *
+ ***********************************/
 typedef struct re {
     union {
         int     c;          /* the character */
@@ -41,7 +57,9 @@ typedef struct re {
     int     nccl;           /* true if character class is negated */
 } re_t;
 
-/* Helper definitions */
+/***********************************
+ *        Helper Functions         *
+ ***********************************/
 #define BITS_LONG (8 * sizeof(long))
 
 inline __attribute__ ((always_inline)) void set_ind(long arr[4], int i) {
@@ -51,6 +69,19 @@ inline __attribute__ ((always_inline)) void set_ind(long arr[4], int i) {
 inline __attribute__ ((always_inline)) int get_ind(const long arr[4], int i) {
     return (arr[i / BITS_LONG] >> (i % BITS_LONG)) & 1;
 }
+
+/***********************************
+ *            Functions            *
+ ***********************************/
+
+/**
+ * @brief returns a buffer with all the pattern's shortcuts expanded
+ * 
+ * @param dest   
+ * @param regexp  
+ * @return char* 
+ */
+char *re_precompile(const char *regexp);
 
 /**
  * @brief compiles a regexp pattern into a list of `re_t`s
