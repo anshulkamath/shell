@@ -5,7 +5,7 @@ Welcome to `anshulkamath`'s shell! Here, we will recreate a terminal shell in `C
 In order to complete this project, we will be including a checklist of items to recreate the Shell programming language. This checklist is shown below, and will be added to as the project progresses.
 
 ## checklist
-- [ ] Regex
+- [x] Regex
 - [ ] Tokenizer
     - [ ] Create regex patterns for basic tokens/identifiers
     - [ ] Create enumerations for different classes of tokens
@@ -16,6 +16,7 @@ In order to complete this project, we will be including a checklist of items to 
 ## references
 We will also include a list of references to helpful resources used during the creation of this project:
 
-1. [The Shell Command Language](https://pubs.opengroup.org/onlinepubs/009604499/utilities/xcu_chap02.html)
-2. [Fast Regex Matching](https://swtch.com/~rsc/regexp/regexp1.html)
-3. [A Regular Expression Matcher, TPOP Ch 9](https://www.cs.princeton.edu/courses/archive/spr09/cos333/beautiful.html)
+1. [The Shell Command Language (Link 1)](https://pubs.opengroup.org/onlinepubs/009604499/utilities/xcu_chap02.html)
+2. [The Shell Command Language (Link 2)](https://pubs.opengroup.org/onlinepubs/7908799/xcu/chap2.html)
+3. [Fast Regex Matching](https://swtch.com/~rsc/regexp/regexp1.html)
+4. [A Regular Expression Matcher, TPOP Ch 9](https://www.cs.princeton.edu/courses/archive/spr09/cos333/beautiful.html)
